@@ -230,22 +230,6 @@
         </div>
         <div id="all-fes-comparison"></div>
       </div>
-      <div class="card">
-        <h2>날짜별 집계 저장/열람</h2>
-        <div class="actions" style="margin-bottom:12px;">
-          <button class="btn btn-success" onclick="saveTodaySummary()">오늘 집계 저장</button>
-          <div id="save-daily-status" class="status"></div>
-        </div>
-        <div class="settings-form" style="margin-bottom:12px;">
-          <label>날짜 선택:</label>
-          <select id="daily-date-select" style="padding:6px;font-size:14px;" onchange="loadDailySummary()">
-            <option value="">-- 날짜 선택 --</option>
-          </select>
-          <button class="btn btn-primary" onclick="loadDailyDates()">목록 새로고침</button>
-          <button class="btn btn-success" onclick="downloadDailyExcel()">엑셀 다운로드</button>
-        </div>
-        <div id="daily-summary-view"></div>
-      </div>
 
     </div>
     <!-- 설정 -->
@@ -299,6 +283,22 @@
           </div>
           <div id="name-list" class="name-list"></div>
           <div id="name-list-status" class="status"></div>
+        </div>
+        <div class="card">
+          <h2>날짜별 집계 저장/열람</h2>
+          <div class="actions" style="margin-bottom:12px;">
+            <button class="btn btn-success" onclick="saveTodaySummary()">오늘 집계 저장</button>
+            <div id="save-daily-status" class="status"></div>
+          </div>
+          <div class="settings-form" style="margin-bottom:12px;">
+            <label>날짜 선택:</label>
+            <select id="daily-date-select" style="padding:6px;font-size:14px;" onchange="loadDailySummary()">
+              <option value="">-- 날짜 선택 --</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadDailyDates()">목록 새로고침</button>
+            <button class="btn btn-success" onclick="downloadDailyExcel()">엑셀 다운로드</button>
+          </div>
+          <div id="daily-summary-view"></div>
         </div>
       </div>
     </div>
@@ -1123,32 +1123,9 @@
     }
 
     async function checkDayChange() {
+      // 서버 측 트리거(매일 오전 6시)가 자동 저장+초기화를 처리하므로
+      // 클라이언트에서는 날짜만 기록
       const today = new Date().toISOString().split('T')[0];
-      const lastDate = localStorage.getItem('lastWorkDate');
-
-      if (lastDate && lastDate !== today) {
-        // 초기화 전에 전날 데이터를 자동 저장
-        try {
-          await autoSaveDailyRecord(lastDate);
-          console.log(`${lastDate} 집계 자동 저장 완료`);
-        } catch(e) { console.log('자동 저장 실패:', e.message); }
-
-        // 날짜가 바뀌었으면 서버의 수기 데이터 초기화
-        const types = ['4F_RFT', '4F_FES', '5F_RFT', '5F_FES'];
-        for (const type of types) {
-          try {
-            await apiCall('saveRoom', {}, { type, entries: [] });
-          } catch(e) { console.log(`${type} 자동 초기화 실패:`, e.message); }
-        }
-        // EMR 데이터도 초기화
-        for (const type of types) {
-          try {
-            await apiCall('saveEMR', {}, { type, entries: [] });
-          } catch(e) { console.log(`${type} EMR 초기화 실패:`, e.message); }
-        }
-        console.log(`날짜 변경 감지 (${lastDate} → ${today}): 수기/EMR 데이터 자동 초기화됨`);
-      }
-
       localStorage.setItem('lastWorkDate', today);
     }
 
