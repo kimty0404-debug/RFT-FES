@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>의료 검사 스케줄 관리</title>
+  <title>RFT/FES 액팅관리</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Malgun Gothic', sans-serif; background: #f5f7fa; }
@@ -56,7 +56,7 @@
 </head>
 <body>
   <nav class="nav">
-    <h1>검사 스케줄</h1>
+    <h1>RFT/FES</h1>
     <button id="nav-4rft" onclick="showPage('4rft')">4층 RFT</button>
     <button id="nav-4fes" onclick="showPage('4fes')">4층 FES</button>
     <span class="sep">|</span>
@@ -73,11 +73,10 @@
   <div class="container">
     <div id="page-4rft" class="page">
       <div class="card">
-        <h2>4층 RFT 검사 입력 <span id="4rft-room-count"></span></h2>
+        <h2>4층 RFT 입력 <span id="4rft-room-count"></span></h2>
         <div id="4rft-rooms" class="rooms-grid"></div>
         <div class="actions">
           <button class="btn btn-primary" onclick="saveRoomData('4F_RFT')">저장</button>
-          <button class="btn btn-warning" onclick="refreshRoomData('4F_RFT')">새로고침</button>
           <button class="btn btn-danger" onclick="requestReset('4F_RFT')">초기화</button>
         </div>
         <div id="4rft-status" class="status"></div>
@@ -85,11 +84,10 @@
     </div>
     <div id="page-4fes" class="page">
       <div class="card">
-        <h2>4층 FES 검사 입력 <span id="4fes-room-count"></span></h2>
+        <h2>4층 FES 입력 <span id="4fes-room-count"></span></h2>
         <div id="4fes-rooms" class="rooms-grid"></div>
         <div class="actions">
           <button class="btn btn-primary" onclick="saveRoomData('4F_FES')">저장</button>
-          <button class="btn btn-warning" onclick="refreshRoomData('4F_FES')">새로고침</button>
           <button class="btn btn-danger" onclick="requestReset('4F_FES')">초기화</button>
         </div>
         <div id="4fes-status" class="status"></div>
@@ -97,11 +95,10 @@
     </div>
     <div id="page-5rft" class="page">
       <div class="card">
-        <h2>5층 RFT 검사 입력 <span id="5rft-room-count"></span></h2>
+        <h2>5층 RFT 입력 <span id="5rft-room-count"></span></h2>
         <div id="5rft-rooms" class="rooms-grid"></div>
         <div class="actions">
           <button class="btn btn-primary" onclick="saveRoomData('5F_RFT')">저장</button>
-          <button class="btn btn-warning" onclick="refreshRoomData('5F_RFT')">새로고침</button>
           <button class="btn btn-danger" onclick="requestReset('5F_RFT')">초기화</button>
         </div>
         <div id="5rft-status" class="status"></div>
@@ -109,11 +106,10 @@
     </div>
     <div id="page-5fes" class="page">
       <div class="card">
-        <h2>5층 FES 검사 입력 <span id="5fes-room-count"></span></h2>
+        <h2>5층 FES 입력 <span id="5fes-room-count"></span></h2>
         <div id="5fes-rooms" class="rooms-grid"></div>
         <div class="actions">
           <button class="btn btn-primary" onclick="saveRoomData('5F_FES')">저장</button>
-          <button class="btn btn-warning" onclick="refreshRoomData('5F_FES')">새로고침</button>
           <button class="btn btn-danger" onclick="requestReset('5F_FES')">초기화</button>
         </div>
         <div id="5fes-status" class="status"></div>
@@ -963,8 +959,10 @@
             const normal1 = Number(parts[4])||0, normal2 = Number(parts[5])||0;
             emrMap[parts[0].trim()] = { normal: normal1+normal2, recovery: recovery1+recovery2, complex };
           } else {
-            const recovery = Number(parts[1])||0, normal = Number(parts[2])||0;
-            emrMap[parts[0].trim()] = { normal, recovery };
+            // FES: 이름[탭]회복기[탭]일반
+            const recovery = Number(parts[1])||0;
+            const normal = Number(parts[2])||0;
+            emrMap[parts[0].trim()] = { normal, recovery, complex: 0 };
           }
         }
       });
@@ -975,7 +973,7 @@
       allNames.forEach(name => {
         const room = dataMap[name] || { normal:0, recovery:0, complex:0 };
         const emr = emrMap[name] || { normal:0, recovery:0, complex:0 };
-        rows.push({ name, room, emr });
+        rows.push({ name, room: { normal: room.normal||0, recovery: room.recovery||0, complex: room.complex||0 }, emr });
       });
       rows.sort((a,b) => a.name.localeCompare(b.name,'ko'));
 
