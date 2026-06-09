@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>의료 검사 스케줄 관리</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Malgun Gothic', sans-serif; background: #f5f7fa; }
+    .nav {
+      background: #2c3e50;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+    }
+    .nav h1 { color: white; font-size: 16px; margin-right: 16px; }
+    .nav button {
+      background: transparent;
+      color: #ecf0f1;
+      border: 1px solid #7f8c8d;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .nav button:hover, .nav button.active {
+      background: #3498db;
+      border-color: #3498db;
+      color: white;
+    }
+    .nav .sep { color: #7f8c8d; margin: 0 4px; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { margin-bottom: 16px; color: #2c3e50; font-size: 16px; }
+    .card h3 { margin-bottom: 12px; color: #34495e; font-size: 14px; }
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <h1>검사 스케줄</h1>
+    <button id="nav-4rft" onclick="showPage('4rft')">4층 RFT</button>
+    <button id="nav-4fes" onclick="showPage('4fes')">4층 FES</button>
+    <span class="sep">|</span>
+    <button id="nav-5rft" onclick="showPage('5rft')">5층 RFT</button>
+    <button id="nav-5fes" onclick="showPage('5fes')">5층 FES</button>
+    <span class="sep">|</span>
+    <button id="nav-admin4" onclick="showPage('admin4')">4층 관리</button>
+    <button id="nav-admin5" onclick="showPage('admin5')">5층 관리</button>
+    <button id="nav-all" onclick="showPage('all')">전체 보기</button>
+    <span class="sep">|</span>
+    <button id="nav-settings" onclick="showPage('settings')">설정</button>
+  </nav>
+
+  <div class="container">
+    <div id="page-4rft" class="page">
+      <div class="card">
+        <h2>4층 RFT 검사 입력 <span id="4rft-room-count"></span></h2>
+        <div id="4rft-rooms" class="rooms-grid"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveRoomData('4F_RFT')">저장</button>
+          <button class="btn btn-warning" onclick="refreshRoomData('4F_RFT')">새로고침</button>
+          <button class="btn btn-danger" onclick="requestReset('4F_RFT')">초기화</button>
+        </div>
+        <div id="4rft-status" class="status"></div>
+      </div>
+    </div>
+    <div id="page-4fes" class="page">
+      <div class="card">
+        <h2>4층 FES 검사 입력 <span id="4fes-room-count"></span></h2>
+        <div id="4fes-rooms" class="rooms-grid"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveRoomData('4F_FES')">저장</button>
+          <button class="btn btn-warning" onclick="refreshRoomData('4F_FES')">새로고침</button>
+          <button class="btn btn-danger" onclick="requestReset('4F_FES')">초기화</button>
+        </div>
+        <div id="4fes-status" class="status"></div>
+      </div>
+    </div>
+    <div id="page-5rft" class="page">
+      <div class="card">
+        <h2>5층 RFT 검사 입력 <span id="5rft-room-count"></span></h2>
+        <div id="5rft-rooms" class="rooms-grid"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveRoomData('5F_RFT')">저장</button>
+          <button class="btn btn-warning" onclick="refreshRoomData('5F_RFT')">새로고침</button>
+          <button class="btn btn-danger" onclick="requestReset('5F_RFT')">초기화</button>
+        </div>
+        <div id="5rft-status" class="status"></div>
+      </div>
+    </div>
+    <div id="page-5fes" class="page">
+      <div class="card">
+        <h2>5층 FES 검사 입력 <span id="5fes-room-count"></span></h2>
+        <div id="5fes-rooms" class="rooms-grid"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="saveRoomData('5F_FES')">저장</button>
+          <button class="btn btn-warning" onclick="refreshRoomData('5F_FES')">새로고침</button>
+          <button class="btn btn-danger" onclick="requestReset('5F_FES')">초기화</button>
+        </div>
+        <div id="5fes-status" class="status"></div>
+      </div>
+    </div>
+
+    <!-- 4층 관리자 -->
+    <div id="page-admin4" class="page">
+      <div class="card">
+        <h2>4층 RFT 집계</h2>
+        <div id="4rft-totals" class="totals-box"></div>
+        <div id="4rft-summary"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="loadSummary('4F_RFT')">집계 새로고침</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>4층 RFT EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기1[탭]회복기2[탭]C[탭]일반1[탭]일반2 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-4f_rft-input" placeholder="김광현&#9;&#9;1&#9;&#9;1&#9;0&#10;김대인&#9;1&#9;1&#9;1&#9;4&#9;2"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="saveEMR('4F_RFT')">EMR 저장</button>
+          <button class="btn btn-warning" onclick="loadEMR('4F_RFT')">불러오기</button>
+        </div>
+        <div id="emr-4f_rft-status" class="status"></div>
+      </div>
+      <div class="card">
+        <h2>4층 FES 집계</h2>
+        <div id="4fes-totals" class="totals-box"></div>
+        <div id="4fes-summary"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="loadSummary('4F_FES')">집계 새로고침</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>4층 FES EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기[탭]일반 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-4f_fes-input" placeholder="김지수&#9;&#9;3&#9;&#9;1&#9;0"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="saveEMR('4F_FES')">EMR 저장</button>
+          <button class="btn btn-warning" onclick="loadEMR('4F_FES')">불러오기</button>
+        </div>
+        <div id="emr-4f_fes-status" class="status"></div>
+      </div>
+    </div>
+    <!-- 5층 관리자 -->
+    <div id="page-admin5" class="page">
+      <div class="card">
+        <h2>5층 RFT 집계</h2>
+        <div id="5rft-totals" class="totals-box"></div>
+        <div id="5rft-summary"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="loadSummary('5F_RFT')">집계 새로고침</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>5층 RFT EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기1[탭]회복기2[탭]C[탭]일반1[탭]일반2 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-5f_rft-input" placeholder="김광현&#9;&#9;1&#9;&#9;1&#9;0"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="saveEMR('5F_RFT')">EMR 저장</button>
+          <button class="btn btn-warning" onclick="loadEMR('5F_RFT')">불러오기</button>
+        </div>
+        <div id="emr-5f_rft-status" class="status"></div>
+      </div>
+      <div class="card">
+        <h2>5층 FES 집계</h2>
+        <div id="5fes-totals" class="totals-box"></div>
+        <div id="5fes-summary"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="loadSummary('5F_FES')">집계 새로고침</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>5층 FES EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기[탭]일반 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-5f_fes-input" placeholder="김지수&#9;&#9;3&#9;&#9;1&#9;0"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="saveEMR('5F_FES')">EMR 저장</button>
+          <button class="btn btn-warning" onclick="loadEMR('5F_FES')">불러오기</button>
+        </div>
+        <div id="emr-5f_fes-status" class="status"></div>
+      </div>
+    </div>
+
+    <!-- 전체 보기 -->
+    <div id="page-all" class="page">
+      <div class="card">
+        <h2>RFT 전체 (4층+5층 합산)</h2>
+        <div class="actions" style="margin-bottom:16px;">
+          <button class="btn btn-primary" onclick="loadAllSummary()">전체 집계 새로고침</button>
+        </div>
+        <div id="all-rft-totals" class="totals-box"></div>
+        <div id="all-rft-summary"></div>
+      </div>
+      <div class="card">
+        <h2>RFT 전체 EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기1[탭]회복기2[탭]C[탭]일반1[탭]일반2 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-all-rft-input" placeholder="김광현&#9;&#9;1&#9;&#9;3&#9;7"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="compareAllEMR('RFT')">비교하기</button>
+        </div>
+        <div id="all-rft-comparison"></div>
+      </div>
+      <div class="card">
+        <h2>FES 전체 (4층+5층 합산)</h2>
+        <div id="all-fes-totals" class="totals-box"></div>
+        <div id="all-fes-summary"></div>
+      </div>
+      <div class="card">
+        <h2>FES 전체 EMR 데이터</h2>
+        <p class="hint">형식: 이름[탭]회복기[탭]일반 (EMR에서 그대로 붙여넣기)</p>
+        <textarea id="emr-all-fes-input" placeholder="김지수&#9;1&#9;3"></textarea>
+        <div class="actions">
+          <button class="btn btn-success" onclick="compareAllEMR('FES')">비교하기</button>
+        </div>
+        <div id="all-fes-comparison"></div>
+      </div>
+      <div class="card">
+        <h2>날짜별 집계 저장/열람</h2>
+        <div class="actions" style="margin-bottom:12px;">
+          <button class="btn btn-success" onclick="saveTodaySummary()">오늘 집계 저장</button>
+          <div id="save-daily-status" class="status"></div>
+        </div>
+        <div class="settings-form" style="margin-bottom:12px;">
+          <label>날짜 선택:</label>
+          <select id="daily-date-select" style="padding:6px;font-size:14px;" onchange="loadDailySummary()">
+            <option value="">-- 날짜 선택 --</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadDailyDates()">목록 새로고침</button>
+        </div>
+        <div id="daily-summary-view"></div>
+      </div>
+    </div>
+    <!-- 설정 -->
+    <div id="page-settings" class="page">
+      <div id="settings-lock" class="card">
+        <h2>관리자 인증</h2>
+        <div class="settings-form">
+          <input type="password" id="admin-password" placeholder="비밀번호 입력" style="width:200px;padding:8px;" onkeydown="if(event.key==='Enter')unlockSettings()">
+          <button class="btn btn-primary" onclick="unlockSettings()">확인</button>
+        </div>
+        <div id="lock-status" class="status"></div>
+      </div>
+      <div id="settings-content" style="display:none;">
+        <div class="card">
+          <h2>시스템 설정</h2>
+          <div class="config-banner">
+            <strong>Google Apps Script URL 설정:</strong><br>
+            배포된 Google Apps Script 웹앱 URL을 입력하세요.
+          </div>
+          <div class="settings-form" style="margin-bottom:16px;">
+            <label>Apps Script URL:</label>
+            <input type="text" id="script-url" style="width:400px;" placeholder="https://script.google.com/macros/s/...../exec">
+            <button class="btn btn-primary" onclick="saveScriptUrl()">URL 저장</button>
+          </div>
+          <div class="settings-form">
+            <label>4층 RFT 룸 수:</label>
+            <input type="number" id="setting-4rft-rooms" min="1" max="10" value="6">
+            <label>4층 FES 룸 수:</label>
+            <input type="number" id="setting-4fes-rooms" min="1" max="10" value="3">
+          </div>
+          <div class="settings-form" style="margin-top:8px;">
+            <label>5층 RFT 룸 수:</label>
+            <input type="number" id="setting-5rft-rooms" min="1" max="10" value="6">
+            <label>5층 FES 룸 수:</label>
+            <input type="number" id="setting-5fes-rooms" min="1" max="10" value="3">
+            <button class="btn btn-success" onclick="saveAppSettings()">설정 저장</button>
+          </div>
+          <div class="settings-form" style="margin-top:12px;">
+            <label>관리자 비밀번호 변경:</label>
+            <input type="password" id="new-admin-password" placeholder="새 비밀번호" style="width:150px;padding:6px;">
+            <button class="btn btn-warning" onclick="changePassword()">변경</button>
+          </div>
+          <div id="settings-status" class="status"></div>
+        </div>
+        <div class="card">
+          <h2>검사자 이름 리스트 관리</h2>
+          <p class="hint">여기에 등록된 이름이 룸 입력 시 자동완성으로 표시됩니다.</p>
+          <div class="settings-form" style="margin-bottom:12px;">
+            <input type="text" id="new-name-input" placeholder="새 이름 입력" style="width:150px;padding:6px;" onkeydown="if(event.key==='Enter')addName()">
+            <button class="btn btn-success" onclick="addName()">추가</button>
+          </div>
+          <div id="name-list" class="name-list"></div>
+          <div id="name-list-status" class="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .room-card { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; }
+    .room-card h4 { background: #3498db; color: white; padding: 6px 12px; border-radius: 4px; margin-bottom: 10px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 3px 4px; text-align: center; border: 1px solid #e0e0e0; }
+    th { background: #f8f9fa; font-weight: 600; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; text-align: center;
+    }
+    input[type="number"] { width: 45px; }
+    input:focus { outline: none; border-color: #3498db; }
+    .btn { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { background: #219a52; }
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-warning { background: #f39c12; color: white; }
+    .btn-warning:hover { background: #d68910; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .summary-table th { background: #2c3e50; color: white; }
+    .error-cell { background: #ff0000 !important; color: white; font-weight: bold; font-size: 14px; }
+    .ok-cell { background: #e8f5e9 !important; color: #2e7d32; }
+    .totals-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .total-item { background: #f8f9fa; padding: 10px; border-radius: 6px; text-align: center; }
+    .total-item .label { font-size: 10px; color: #7f8c8d; }
+    .total-item .value { font-size: 20px; font-weight: bold; color: #2c3e50; }
+    .settings-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .settings-form label { font-size: 13px; color: #34495e; }
+    .settings-form input[type="number"] { width: 60px; padding: 6px; font-size: 14px; }
+    textarea { width: 100%; min-height: 150px; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px; resize: vertical; }
+    .hint { font-size: 12px; color: #7f8c8d; margin-bottom: 8px; }
+    .status { padding: 8px 12px; border-radius: 4px; margin-top: 8px; font-size: 13px; display: none; }
+    .status.show { display: block; }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.info { background: #d1ecf1; color: #0c5460; }
+    .config-banner { background: #fff3cd; border: 1px solid #ffc107; padding: 12px 20px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+    .name-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .name-tag { background: #e8f4fd; border: 1px solid #bee5eb; padding: 4px 10px; border-radius: 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .name-tag .remove-btn { background: #e74c3c; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #3498db; border-top: none; border-radius: 0 0 4px 4px; max-height: 150px; overflow-y: auto; z-index: 200; display: none; }
+    .autocomplete-list.show { display: block; }
+    .autocomplete-item { padding: 6px 8px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
+    .autocomplete-item:hover, .autocomplete-item.selected { background: #3498db; color: white; }
+  </style>
+
+  <script>
+    const TIME_SLOTS = ['8:30','9:00','9:35','10:05','10:40','11:10','11:45','1:20','1:50','2:25','2:55','3:30','4:00'];
+    const AM_SLOTS = ['8:30','9:00','9:35','10:05','10:40','11:10','11:45'];
+    const PM_SLOTS = ['1:20','1:50','2:25','2:55','3:30','4:00'];
+    let APP_SETTINGS = { '4rft': 6, '4fes': 3, '5rft': 6, '5fes': 3 };
+    let NAME_LIST = [];
+
+    function getScriptUrl() {
+      return 'https://script.google.com/macros/s/AKfycbyvEq2xUpD61KIw3Q0Oa6HS65uJp0BFa5G233kD1I9g6JtQlAben-jIg-1-auvMroUY/exec';
+    }
+    function saveScriptUrl() {
+      localStorage.setItem('scriptUrl', document.getElementById('script-url').value.trim());
+      showStatus('settings-status', 'URL 저장됨', 'success');
+    }
+
+    async function apiCall(action, params = {}, postData = null) {
+      const url = getScriptUrl();
+      if (!url) throw new Error('설정 탭에서 Apps Script URL을 입력하세요.');
+      let fetchUrl = `${url}?action=${action}`;
+      Object.entries(params).forEach(([k, v]) => { fetchUrl += `&${k}=${encodeURIComponent(v)}`; });
+      const options = { method: 'GET' };
+      if (postData) { options.method = 'POST'; options.body = JSON.stringify(postData); options.headers = { 'Content-Type': 'text/plain' }; }
+      const response = await fetch(fetchUrl, options);
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
+      return result;
+    }
+
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(`page-${page}`).classList.add('active');
+      document.getElementById(`nav-${page}`).classList.add('active');
+      const typeMap = { '4rft':'4F_RFT', '4fes':'4F_FES', '5rft':'5F_RFT', '5fes':'5F_FES' };
+      // 입력 탭: 첫 로드 시 서버에서 불러옴, 이후 탭 이동 시 유지
+      if (typeMap[page]) {
+        loadRoomData(typeMap[page]);
+      }
+      if (page === 'admin4') { loadSummary('4F_RFT'); loadSummary('4F_FES'); }
+      if (page === 'admin5') { loadSummary('5F_RFT'); loadSummary('5F_FES'); }
+      if (page === 'all') loadAllSummary();
+      if (page === 'settings') {
+        document.getElementById('settings-lock').style.display = 'block';
+        document.getElementById('settings-content').style.display = 'none';
+        document.getElementById('admin-password').value = '';
+      }
+    }
+
+    function showStatus(id, msg, type) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg;
+      el.className = `status show ${type}`;
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function getPageKey(type) { return type.replace('F_','').toLowerCase(); }
+    function getRoomCount(type) { return APP_SETTINGS[getPageKey(type)] || 6; }
+    function getRoomPrefix(type) { return type.includes('RFT') ? 'R' : 'F'; }
+
+    // ===== 룸 렌더링 (C 컬럼은 RFT만) =====
+    function renderRooms(type) {
+      const count = getRoomCount(type);
+      const prefix = getRoomPrefix(type);
+      const pageKey = getPageKey(type);
+      const containerId = `${pageKey}-rooms`;
+      const countEl = document.getElementById(`${pageKey}-room-count`);
+      if (countEl) countEl.textContent = `(${count}개 룸)`;
+      const isRFT = type.includes('RFT');
+
+      let html = '';
+      for (let r = 1; r <= count; r++) {
+        html += `<div class="room-card"><h4>${prefix}${r}</h4><table>
+          <thead><tr><th>시간</th><th>이름</th><th>일반</th><th>회복기</th>${isRFT?'<th>C</th>':''}</tr></thead><tbody>`;
+        TIME_SLOTS.forEach((time, ti) => {
+          const id = `${type}-${r}-${time}`;
+          html += `<tr>
+            <td>${time}</td>
+            <td class="autocomplete-wrapper">
+              <input type="text" id="${id}-name" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="name" placeholder="이름" oninput="onNameInput(this)" onfocus="onNameInput(this)" onblur="validateNameOnBlur(this)" onkeydown="handleKeyNav(event, this)" autocomplete="off">
+              <div class="autocomplete-list" id="${id}-name-list"></div>
+            </td>
+            <td><input type="number" id="${id}-normal" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="normal" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>
+            <td><input type="number" id="${id}-recovery" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="recovery" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>
+            ${isRFT?`<td><input type="number" id="${id}-complex" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="complex" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>`:''}
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+      }
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    // ===== 키보드 네비게이션 =====
+    function handleKeyNav(event, input) {
+      const type = input.dataset.type;
+      const room = input.dataset.room;
+      const tidx = parseInt(input.dataset.tidx);
+      const field = input.dataset.field;
+
+      // 이름 칸: Enter → 아래 이름 칸으로
+      if (field === 'name') {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          event.stopPropagation();
+          // 자동완성 선택 중이면 선택만 하고 끝
+          if (activeAutocomplete && selectedIndex >= 0) {
+            const name = activeAutocomplete.matches[selectedIndex];
+            const input2 = document.getElementById(input.id);
+            input2.value = name;
+            input2.style.borderColor = '#27ae60';
+            const listEl = document.getElementById(input.id + '-list');
+            if (listEl) listEl.classList.remove('show');
+            activeAutocomplete = null;
+            selectedIndex = -1;
+            return;
+          }
+          // 자동완성 닫기
+          const listEl = document.getElementById(input.id + '-list');
+          if (listEl) listEl.classList.remove('show');
+          activeAutocomplete = null;
+          selectedIndex = -1;
+          // 아래 이름 칸으로 이동 (setTimeout으로 다른 이벤트와 분리)
+          setTimeout(() => {
+            const nextTidx = tidx + 1;
+            if (nextTidx < TIME_SLOTS.length) {
+              const nextId = `${type}-${room}-${TIME_SLOTS[nextTidx]}-name`;
+              const nextEl = document.getElementById(nextId);
+              if (nextEl) nextEl.focus();
+            }
+          }, 10);
+        } else if (event.key === 'ArrowDown') {
+          if (activeAutocomplete) {
+            event.preventDefault();
+            const items = activeAutocomplete.listEl.querySelectorAll('.autocomplete-item');
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+          } else {
+            event.preventDefault();
+            const nextTidx = tidx + 1;
+            if (nextTidx < TIME_SLOTS.length) {
+              const nextId = `${type}-${room}-${TIME_SLOTS[nextTidx]}-name`;
+              const nextEl = document.getElementById(nextId);
+              if (nextEl) nextEl.focus();
+            }
+          }
+        } else if (event.key === 'ArrowUp') {
+          if (activeAutocomplete) {
+            event.preventDefault();
+            const items = activeAutocomplete.listEl.querySelectorAll('.autocomplete-item');
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+          } else {
+            event.preventDefault();
+            const prevTidx = tidx - 1;
+            if (prevTidx >= 0) {
+              const prevId = `${type}-${room}-${TIME_SLOTS[prevTidx]}-name`;
+              const prevEl = document.getElementById(prevId);
+              if (prevEl) prevEl.focus();
+            }
+          }
+        } else if (event.key === 'Escape' && activeAutocomplete) {
+          const listEl = document.getElementById(input.id + '-list');
+          if (listEl) listEl.classList.remove('show');
+          activeAutocomplete = null;
+        } else if (event.key === 'ArrowRight') {
+          // 커서가 텍스트 끝에 있으면 일반 칸으로 이동
+          if (input.selectionStart === input.value.length) {
+            event.preventDefault();
+            const nextId = `${type}-${room}-${TIME_SLOTS[tidx]}-normal`;
+            const nextEl = document.getElementById(nextId);
+            if (nextEl) nextEl.focus();
+          }
+        }
+        return;
+      }
+
+      // 숫자 칸 (일반/회복기/C): Enter/↓ → 아래 같은 칸, ↑ → 위 같은 칸, ←→ → 옆 칸
+      if (event.key === 'Enter' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextTidx = tidx + 1;
+        if (nextTidx < TIME_SLOTS.length) {
+          const nextId = `${type}-${room}-${TIME_SLOTS[nextTidx]}-${field}`;
+          const nextEl = document.getElementById(nextId);
+          if (nextEl) nextEl.focus();
+        }
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prevTidx = tidx - 1;
+        if (prevTidx >= 0) {
+          const prevId = `${type}-${room}-${TIME_SLOTS[prevTidx]}-${field}`;
+          const prevEl = document.getElementById(prevId);
+          if (prevEl) prevEl.focus();
+        }
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        const isRFT = type.includes('RFT');
+        const fields = isRFT ? ['name','normal','recovery','complex'] : ['name','normal','recovery'];
+        const fi = fields.indexOf(field);
+        if (fi < fields.length - 1) {
+          const nextField = fields[fi + 1];
+          const nextId = `${type}-${room}-${TIME_SLOTS[tidx]}-${nextField}`;
+          const nextEl = document.getElementById(nextId);
+          if (nextEl) nextEl.focus();
+        }
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        const isRFT = type.includes('RFT');
+        const fields = isRFT ? ['name','normal','recovery','complex'] : ['name','normal','recovery'];
+        const fi = fields.indexOf(field);
+        if (fi > 0) {
+          const prevField = fields[fi - 1];
+          const prevId = `${type}-${room}-${TIME_SLOTS[tidx]}-${prevField}`;
+          const prevEl = document.getElementById(prevId);
+          if (prevEl) prevEl.focus();
+        }
+      }
+    }
+
+    // ===== 데이터 로드/저장 =====
+    async function loadRoomData(type) {
+      renderRooms(type);
+      // 서버에서 저장된 데이터 불러오기
+      await loadFromServer(type);
+    }
+
+    async function refreshRoomData(type) {
+      // 서버에서 최신 데이터를 다시 불러오기
+      const pageKey = getPageKey(type);
+      renderRooms(type);
+      try {
+        await loadFromServer(type);
+        showStatus(pageKey + '-status', '새로고침 완료!', 'success');
+      } catch(e) {
+        showStatus(pageKey + '-status', '새로고침 실패: ' + e.message, 'error');
+      }
+    }
+
+    function requestReset(type) {
+      // 담당자 비밀번호 확인 후 초기화
+      const pw = prompt('초기화는 담당자만 가능합니다.\n비밀번호를 입력하세요:');
+      if (pw === null) return; // 취소
+      const savedPw = localStorage.getItem('adminPassword') || DEFAULT_PASSWORD;
+      if (pw !== savedPw) {
+        showStatus(getPageKey(type) + '-status', '비밀번호가 틀렸습니다. 초기화 권한이 없습니다.', 'error');
+        return;
+      }
+      if (!confirm('정말 초기화하시겠습니까? 모든 입력 데이터가 삭제됩니다.')) return;
+      forceResetRoomData(type);
+    }
+
+    async function forceResetRoomData(type) {
+      // 초기화: 빈칸으로 초기화 + 서버 데이터 삭제
+      renderRooms(type);
+      try {
+        await apiCall('saveRoom', {}, { type, entries: [] });
+        showStatus(getPageKey(type) + '-status', '초기화 완료!', 'success');
+      } catch(e) {
+        showStatus(getPageKey(type) + '-status', '초기화 실패: ' + e.message, 'error');
+      }
+    }
+
+    async function loadFromServer(type) {
+      try {
+        const data = await apiCall('getRooms', { type });
+        if (data.rooms) {
+          data.rooms.forEach(entry => {
+            // 시간 값 정규화
+            let timeStr = normalizeTime(entry.time);
+            const nameEl = document.getElementById(`${type}-${entry.room}-${timeStr}-name`);
+            const normalEl = document.getElementById(`${type}-${entry.room}-${timeStr}-normal`);
+            const recoveryEl = document.getElementById(`${type}-${entry.room}-${timeStr}-recovery`);
+            const complexEl = document.getElementById(`${type}-${entry.room}-${timeStr}-complex`);
+            if (nameEl) nameEl.value = entry.name || '';
+            if (normalEl) normalEl.value = entry.normal || '';
+            if (recoveryEl) recoveryEl.value = entry.recovery || '';
+            if (complexEl) complexEl.value = entry.complex || '';
+          });
+        }
+      } catch (e) { console.log('로드 실패:', e.message); }
+    }
+
+    function normalizeTime(timeVal) {
+      const t = String(timeVal).trim();
+      // t접두사 제거 (새 형식: t8:30)
+      if (t.startsWith('t') && t.includes(':')) return t.substring(1);
+      // 이미 정상 형태 (8:30, 9:00 등)
+      if (/^\d{1,2}:\d{2}$/.test(t)) return t;
+      // ISO 날짜 형태 (1899-12-30T00:02:08.000Z) — 시간 비율로 계산
+      if (t.includes('1899')) {
+        // Google Sheets는 시간을 하루의 비율로 저장
+        // 1899-12-30 기준으로 실제 시간 추출
+        const d = new Date(t);
+        let hours = d.getUTCHours();
+        let mins = d.getUTCMinutes();
+        // UTC 시간이 실제 입력 시간
+        if (hours === 0 && mins === 0) return t; // 매칭 불가
+        if (hours > 12) hours -= 12;
+        return `${hours}:${mins.toString().padStart(2,'0')}`;
+      }
+      // 일반 ISO에서 시간 추출
+      const isoMatch = t.match(/T(\d{2}):(\d{2})/);
+      if (isoMatch) {
+        let hour = parseInt(isoMatch[1]);
+        const min = isoMatch[2];
+        if (hour > 12) hour -= 12;
+        return `${hour}:${min}`;
+      }
+      return t;
+    }
+
+    async function saveRoomData(type) {
+      const count = getRoomCount(type);
+      const pageKey = getPageKey(type);
+      const statusId = `${pageKey}-status`;
+      
+      // 현재 화면에서 입력된 데이터 수집
+      const entries = [];
+      for (let r = 1; r <= count; r++) {
+        TIME_SLOTS.forEach(time => {
+          const name = document.getElementById(`${type}-${r}-${time}-name`)?.value?.trim();
+          const normal = document.getElementById(`${type}-${r}-${time}-normal`)?.value;
+          const recovery = document.getElementById(`${type}-${r}-${time}-recovery`)?.value;
+          const complex = document.getElementById(`${type}-${r}-${time}-complex`)?.value;
+          if (name && (NAME_LIST.length === 0 || NAME_LIST.includes(name))) {
+            entries.push({ room: r, time, name, normal: Number(normal)||0, recovery: Number(recovery)||0, complex: Number(complex)||0 });
+          }
+        });
+      }
+
+      // 서버에 저장 (화면에 있는 데이터만)
+      try {
+        await apiCall('saveRoom', {}, { type, entries });
+        showStatus(statusId, '저장 완료!', 'success');
+      } catch (e) { showStatus(statusId, '저장 실패: ' + e.message, 'error'); }
+    }
+
+    // ===== EMR =====
+    async function saveEMR(type) {
+      const key = type.toLowerCase();
+      const text = document.getElementById(`emr-${key}-input`).value.trim();
+      const statusId = `emr-${key}-status`;
+      if (!text) { showStatus(statusId, 'EMR 데이터를 입력하세요.', 'error'); return; }
+      const entries = [];
+      const isRFT = type.includes('RFT');
+      text.split('\n').forEach(line => {
+        const parts = line.split('\t');
+        if (parts[0]?.trim()) {
+          if (isRFT) {
+            // RFT: 이름, 회복기1, 회복기2, C, 일반1, 일반2
+            const recovery1 = Number(parts[1]) || 0;
+            const recovery2 = Number(parts[2]) || 0;
+            const complex = Number(parts[3]) || 0;
+            const normal1 = Number(parts[4]) || 0;
+            const normal2 = Number(parts[5]) || 0;
+            entries.push({ name: parts[0].trim(), normal: normal1 + normal2, recovery: recovery1 + recovery2, complex });
+          } else {
+            // FES: 이름, 회복기, 일반
+            const recovery = Number(parts[1]) || 0;
+            const normal = Number(parts[2]) || 0;
+            entries.push({ name: parts[0].trim(), normal, recovery, complex: 0 });
+          }
+        }
+      });
+      entries.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      try {
+        await apiCall('saveEMR', {}, { type, entries });
+        showStatus(statusId, `EMR ${entries.length}건 저장됨`, 'success');
+      } catch (e) { showStatus(statusId, '저장 실패: ' + e.message, 'error'); }
+    }
+
+    async function loadEMR(type) {
+      const key = type.toLowerCase();
+      const statusId = `emr-${key}-status`;
+      try {
+        const data = await apiCall('getEMR', { type });
+        if (data.emr && data.emr.length > 0) {
+          document.getElementById(`emr-${key}-input`).value = data.emr.map(e => `${e.name}\t${e.normal}\t${e.recovery}\t${e.complex||0}`).join('\n');
+          showStatus(statusId, '불러오기 완료', 'success');
+        } else { showStatus(statusId, '저장된 EMR 없음', 'info'); }
+      } catch (e) { showStatus(statusId, '실패: ' + e.message, 'error'); }
+    }
+
+    // ===== 집계 =====
+    function renderTotals(containerId, totals, isRFT) {
+      const t = totals;
+      let html = `
+        <div class="total-item"><div class="label">오전 일반</div><div class="value">${t.amNormal}</div></div>
+        <div class="total-item"><div class="label">오전 회복기</div><div class="value">${t.amRecovery}</div></div>
+        ${isRFT?`<div class="total-item"><div class="label">오전 C</div><div class="value">${t.amComplex}</div></div>`:''}
+        <div class="total-item"><div class="label">오후 일반</div><div class="value">${t.pmNormal}</div></div>
+        <div class="total-item"><div class="label">오후 회복기</div><div class="value">${t.pmRecovery}</div></div>
+        ${isRFT?`<div class="total-item"><div class="label">오후 C</div><div class="value">${t.pmComplex}</div></div>`:''}
+        <div class="total-item"><div class="label">총 일반</div><div class="value" style="color:#2980b9">${t.totalNormal}</div></div>
+        <div class="total-item"><div class="label">총 회복기</div><div class="value" style="color:#27ae60">${t.totalRecovery}</div></div>
+        ${isRFT?`<div class="total-item"><div class="label">총 C</div><div class="value" style="color:#8e44ad">${t.totalComplex}</div></div>`:''}
+      `;
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    function renderComparison(containerId, comparison, isRFT) {
+      if (!comparison || comparison.length === 0) {
+        document.getElementById(containerId).innerHTML = '<p style="color:#7f8c8d;">데이터 없음</p>';
+        return;
+      }
+      let html;
+      if (isRFT) {
+        html = `<table class="summary-table"><thead><tr>
+          <th>이름</th><th>일반(입력)</th><th>회복기(입력)</th><th>C(입력)</th><th>일반(EMR)</th><th>회복기(EMR)</th><th>C(EMR)</th><th>일반</th><th>회복기</th><th>C</th>
+        </tr></thead><tbody>`;
+      } else {
+        html = `<table class="summary-table"><thead><tr>
+          <th>이름</th><th>일반(입력)</th><th>회복기(입력)</th><th>일반(EMR)</th><th>회복기(EMR)</th><th>일반</th><th>회복기</th>
+        </tr></thead><tbody>`;
+      }
+      let totalRoomN=0, totalRoomR=0, totalRoomC=0, totalEmrN=0, totalEmrR=0, totalEmrC=0;
+      comparison.forEach(row => {
+        if (row.roomNormal===0 && row.roomRecovery===0 && row.roomComplex===0 && row.emrNormal===0 && row.emrRecovery===0 && row.emrComplex===0) return;
+        const nc = row.normalError ? 'error-cell' : 'ok-cell';
+        const rc = row.recoveryError ? 'error-cell' : 'ok-cell';
+        const cc = row.complexError ? 'error-cell' : 'ok-cell';
+        const nDiff = row.roomNormal - row.emrNormal;
+        const rDiff = row.roomRecovery - row.emrRecovery;
+        const cDiff = row.roomComplex - row.emrComplex;
+        const fmtDiff = (d) => d === 0 ? 'O' : (d > 0 ? `+${d}` : `${d}`);
+        const roomTotal = row.roomNormal + row.roomRecovery + (isRFT ? row.roomComplex : 0);
+        totalRoomN += row.roomNormal; totalRoomR += row.roomRecovery; totalRoomC += row.roomComplex;
+        totalEmrN += row.emrNormal; totalEmrR += row.emrRecovery; totalEmrC += row.emrComplex;
+        const rowStyle = row.missingInRoom ? ' style="background:#fff3cd;"' : '';
+        const nameLabel = row.missingInRoom ? `${row.name} ⚠️` : row.name;
+        if (isRFT) {
+          html += `<tr${rowStyle}><td><strong>${nameLabel}</strong></td>
+            <td>${row.roomNormal}</td><td>${row.roomRecovery}</td><td>${row.roomComplex}</td>
+            <td>${row.emrNormal}</td><td>${row.emrRecovery}</td><td>${row.emrComplex}</td>
+            <td class="${nc}">${fmtDiff(nDiff)}</td>
+            <td class="${rc}">${fmtDiff(rDiff)}</td>
+            <td class="${cc}">${fmtDiff(cDiff)}</td></tr>`;
+        } else {
+          html += `<tr${rowStyle}><td><strong>${nameLabel}</strong></td>
+            <td>${row.roomNormal}</td><td>${row.roomRecovery}</td>
+            <td>${row.emrNormal}</td><td>${row.emrRecovery}</td>
+            <td class="${nc}">${fmtDiff(nDiff)}</td>
+            <td class="${rc}">${fmtDiff(rDiff)}</td></tr>`;
+        }
+      });
+      const grandTotal = totalRoomN + totalRoomR + (isRFT ? totalRoomC : 0);
+      if (isRFT) {
+        html += `<tr style="background:#f0f0f0;font-weight:bold;">
+          <td>합계</td><td>${totalRoomN}</td><td>${totalRoomR}</td><td>${totalRoomC}</td>
+          <td>${totalEmrN}</td><td>${totalEmrR}</td><td>${totalEmrC}</td><td></td><td></td><td></td></tr>`;
+      } else {
+        html += `<tr style="background:#f0f0f0;font-weight:bold;">
+          <td>합계</td><td>${totalRoomN}</td><td>${totalRoomR}</td>
+          <td>${totalEmrN}</td><td>${totalEmrR}</td><td></td><td></td></tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    async function loadSummary(type) {
+      const pageKey = getPageKey(type);
+      const isRFT = type.includes('RFT');
+      try {
+        const data = await apiCall('getSummary', { type });
+        if (data.totals) renderTotals(`${pageKey}-totals`, data.totals, isRFT);
+        renderComparison(`${pageKey}-summary`, data.comparison, isRFT);
+      } catch (e) {
+        document.getElementById(`${pageKey}-summary`).innerHTML = `<p style="color:#e74c3c;">${e.message}</p>`;
+      }
+    }
+
+    async function loadAllSummary() {
+      // RFT 합산 (4층+5층)
+      const rftMap = {};
+      let rftTotals = { amNormal:0, amRecovery:0, amComplex:0, pmNormal:0, pmRecovery:0, pmComplex:0, totalNormal:0, totalRecovery:0, totalComplex:0 };
+      for (const type of ['4F_RFT','5F_RFT']) {
+        try {
+          const data = await apiCall('getSummary', { type });
+          if (data.totals) {
+            rftTotals.amNormal += data.totals.amNormal; rftTotals.amRecovery += data.totals.amRecovery; rftTotals.amComplex += data.totals.amComplex;
+            rftTotals.pmNormal += data.totals.pmNormal; rftTotals.pmRecovery += data.totals.pmRecovery; rftTotals.pmComplex += data.totals.pmComplex;
+            rftTotals.totalNormal += data.totals.totalNormal; rftTotals.totalRecovery += data.totals.totalRecovery; rftTotals.totalComplex += data.totals.totalComplex;
+          }
+          (data.comparison||[]).forEach(row => {
+            if (!rftMap[row.name]) rftMap[row.name] = { normal:0, recovery:0, complex:0 };
+            rftMap[row.name].normal += row.roomNormal||0;
+            rftMap[row.name].recovery += row.roomRecovery||0;
+            rftMap[row.name].complex += row.roomComplex||0;
+          });
+        } catch(e) {}
+      }
+      renderTotals('all-rft-totals', rftTotals, true);
+      renderAllTable('all-rft-summary', rftMap, true);
+
+      // FES 합산 (4층+5층)
+      const fesMap = {};
+      let fesTotals = { amNormal:0, amRecovery:0, amComplex:0, pmNormal:0, pmRecovery:0, pmComplex:0, totalNormal:0, totalRecovery:0, totalComplex:0 };
+      for (const type of ['4F_FES','5F_FES']) {
+        try {
+          const data = await apiCall('getSummary', { type });
+          if (data.totals) {
+            fesTotals.amNormal += data.totals.amNormal; fesTotals.amRecovery += data.totals.amRecovery;
+            fesTotals.pmNormal += data.totals.pmNormal; fesTotals.pmRecovery += data.totals.pmRecovery;
+            fesTotals.totalNormal += data.totals.totalNormal; fesTotals.totalRecovery += data.totals.totalRecovery;
+          }
+          (data.comparison||[]).forEach(row => {
+            if (!fesMap[row.name]) fesMap[row.name] = { normal:0, recovery:0 };
+            fesMap[row.name].normal += row.roomNormal||0;
+            fesMap[row.name].recovery += row.roomRecovery||0;
+          });
+        } catch(e) {}
+      }
+      renderTotals('all-fes-totals', fesTotals, false);
+      renderAllTable('all-fes-summary', fesMap, false);
+
+      // 데이터 저장 (비교용)
+      window._rftMap = rftMap;
+      window._fesMap = fesMap;
+      // 날짜 목록 로드
+      loadDailyDates();
+    }
+
+    async function saveTodaySummary() {
+      const today = new Date().toISOString().split('T')[0]; // 2026-06-01
+      const entries = [];
+      // RFT 데이터
+      if (window._rftMap) {
+        Object.entries(window._rftMap).forEach(([name, d]) => {
+          entries.push({ type: 'RFT', name, normal: d.normal, recovery: d.recovery, complex: d.complex });
+        });
+      }
+      // FES 데이터
+      if (window._fesMap) {
+        Object.entries(window._fesMap).forEach(([name, d]) => {
+          entries.push({ type: 'FES', name, normal: d.normal, recovery: d.recovery, complex: 0 });
+        });
+      }
+      try {
+        await apiCall('saveDailyRecord', {}, { date: today, records: entries });
+        showStatus('save-daily-status', `${today} 집계 저장 완료!`, 'success');
+        loadDailyDates();
+      } catch(e) { showStatus('save-daily-status', '저장 실패: ' + e.message, 'error'); }
+    }
+
+    async function loadDailyDates() {
+      try {
+        const result = await apiCall('getDailyDates');
+        const select = document.getElementById('daily-date-select');
+        select.innerHTML = '<option value="">-- 날짜 선택 --</option>';
+        if (result.dates) {
+          result.dates.forEach(date => {
+            select.innerHTML += `<option value="${date}">${date}</option>`;
+          });
+        }
+      } catch(e) {}
+    }
+
+    async function loadDailySummary() {
+      const date = document.getElementById('daily-date-select').value;
+      if (!date) { document.getElementById('daily-summary-view').innerHTML = ''; return; }
+      try {
+        const result = await apiCall('getDailyRecord', { date });
+        if (!result.records || result.records.length === 0) {
+          document.getElementById('daily-summary-view').innerHTML = '<p style="color:#7f8c8d;">데이터 없음</p>';
+          return;
+        }
+        const rft = result.records.filter(e => e.type === 'RFT').sort((a,b) => a.name.localeCompare(b.name,'ko'));
+        const fes = result.records.filter(e => e.type === 'FES').sort((a,b) => a.name.localeCompare(b.name,'ko'));
+        let html = `<h3>${date} RFT 집계</h3>`;
+        html += `<table class="summary-table"><thead><tr><th>이름</th><th>일반</th><th>회복기</th><th>C</th></tr></thead><tbody>`;
+        rft.forEach(r => { html += `<tr><td>${r.name}</td><td>${r.normal}</td><td>${r.recovery}</td><td>${r.complex}</td></tr>`; });
+        html += '</tbody></table>';
+        html += `<h3 style="margin-top:16px;">${date} FES 집계</h3>`;
+        html += `<table class="summary-table"><thead><tr><th>이름</th><th>일반</th><th>회복기</th></tr></thead><tbody>`;
+        fes.forEach(r => { html += `<tr><td>${r.name}</td><td>${r.normal}</td><td>${r.recovery}</td></tr>`; });
+        html += '</tbody></table>';
+        document.getElementById('daily-summary-view').innerHTML = html;
+      } catch(e) { document.getElementById('daily-summary-view').innerHTML = `<p style="color:#e74c3c;">${e.message}</p>`; }
+    }
+
+    function renderAllTable(containerId, dataMap, isRFT) {
+      const sorted = Object.entries(dataMap).sort((a,b) => a[0].localeCompare(b[0],'ko'));
+      if (sorted.length === 0) { document.getElementById(containerId).innerHTML = '<p style="color:#7f8c8d;">데이터 없음</p>'; return; }
+      let html;
+      if (isRFT) {
+        html = `<table class="summary-table"><thead><tr><th>이름</th><th>일반</th><th>회복기</th><th>C</th></tr></thead><tbody>`;
+        sorted.forEach(([name, d]) => { html += `<tr><td><strong>${name}</strong></td><td>${d.normal}</td><td>${d.recovery}</td><td>${d.complex}</td></tr>`; });
+      } else {
+        html = `<table class="summary-table"><thead><tr><th>이름</th><th>일반</th><th>회복기</th></tr></thead><tbody>`;
+        sorted.forEach(([name, d]) => { html += `<tr><td><strong>${name}</strong></td><td>${d.normal}</td><td>${d.recovery}</td></tr>`; });
+      }
+      html += '</tbody></table>';
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    function compareAllEMR(examType) {
+      const isRFT = examType === 'RFT';
+      const textareaId = `emr-all-${examType.toLowerCase()}-input`;
+      const resultId = `all-${examType.toLowerCase()}-comparison`;
+      const text = document.getElementById(textareaId).value.trim();
+      if (!text) return;
+
+      const emrMap = {};
+      text.split('\n').forEach(line => {
+        const parts = line.split('\t');
+        if (parts[0]?.trim()) {
+          if (isRFT) {
+            const recovery1 = Number(parts[1])||0, recovery2 = Number(parts[2])||0;
+            const complex = Number(parts[3])||0;
+            const normal1 = Number(parts[4])||0, normal2 = Number(parts[5])||0;
+            emrMap[parts[0].trim()] = { normal: normal1+normal2, recovery: recovery1+recovery2, complex };
+          } else {
+            const recovery = Number(parts[1])||0, normal = Number(parts[2])||0;
+            emrMap[parts[0].trim()] = { normal, recovery };
+          }
+        }
+      });
+
+      const dataMap = isRFT ? (window._rftMap||{}) : (window._fesMap||{});
+      const allNames = new Set([...Object.keys(dataMap), ...Object.keys(emrMap)]);
+      const rows = [];
+      allNames.forEach(name => {
+        const room = dataMap[name] || { normal:0, recovery:0, complex:0 };
+        const emr = emrMap[name] || { normal:0, recovery:0, complex:0 };
+        rows.push({ name, room, emr });
+      });
+      rows.sort((a,b) => a.name.localeCompare(b.name,'ko'));
+
+      let html;
+      if (isRFT) {
+        html = `<table class="summary-table"><thead><tr><th>이름</th><th>일반(입력)</th><th>회복기(입력)</th><th>C(입력)</th><th>일반(EMR)</th><th>회복기(EMR)</th><th>C(EMR)</th><th>일반</th><th>회복기</th><th>C</th></tr></thead><tbody>`;
+        rows.forEach(r => {
+          if (r.room.normal===0&&r.room.recovery===0&&r.room.complex===0&&r.emr.normal===0&&r.emr.recovery===0&&r.emr.complex===0) return;
+          const nD=r.room.normal-r.emr.normal, cD=r.room.complex-r.emr.complex, rD=r.room.recovery-r.emr.recovery;
+          const f=(d)=>d===0?'O':(d>0?`+${d}`:`${d}`);
+          const nc=nD!==0?'error-cell':'ok-cell', cc=cD!==0?'error-cell':'ok-cell', rc=rD!==0?'error-cell':'ok-cell';
+          html += `<tr><td><strong>${r.name}</strong></td><td>${r.room.normal}</td><td>${r.room.recovery}</td><td>${r.room.complex}</td><td>${r.emr.normal}</td><td>${r.emr.recovery}</td><td>${r.emr.complex}</td><td class="${nc}">${f(nD)}</td><td class="${rc}">${f(rD)}</td><td class="${cc}">${f(cD)}</td></tr>`;
+        });
+      } else {
+        html = `<table class="summary-table"><thead><tr><th>이름</th><th>일반(입력)</th><th>회복기(입력)</th><th>일반(EMR)</th><th>회복기(EMR)</th><th>일반</th><th>회복기</th></tr></thead><tbody>`;
+        rows.forEach(r => {
+          if (r.room.normal===0&&r.room.recovery===0&&r.emr.normal===0&&r.emr.recovery===0) return;
+          const nD=r.room.normal-r.emr.normal, rD=r.room.recovery-r.emr.recovery;
+          const f=(d)=>d===0?'O':(d>0?`+${d}`:`${d}`);
+          const nc=nD!==0?'error-cell':'ok-cell', rc=rD!==0?'error-cell':'ok-cell';
+          html += `<tr><td><strong>${r.name}</strong></td><td>${r.room.normal}</td><td>${r.room.recovery}</td><td>${r.emr.normal}</td><td>${r.emr.recovery}</td><td class="${nc}">${f(nD)}</td><td class="${rc}">${f(rD)}</td></tr>`;
+        });
+      }
+      html += '</tbody></table>';
+      document.getElementById(resultId).innerHTML = html;
+    }
+
+    // ===== 설정 =====
+    const DEFAULT_PASSWORD = '1234'; // 초기 비밀번호 (설정에서 변경 가능)
+
+    function unlockSettings() {
+      const input = document.getElementById('admin-password').value;
+      const savedPw = localStorage.getItem('adminPassword') || DEFAULT_PASSWORD;
+      if (input === savedPw) {
+        document.getElementById('settings-lock').style.display = 'none';
+        document.getElementById('settings-content').style.display = 'block';
+        loadSettings();
+      } else {
+        showStatus('lock-status', '비밀번호가 틀렸습니다.', 'error');
+      }
+    }
+
+    function changePassword() {
+      const newPw = document.getElementById('new-admin-password').value.trim();
+      if (!newPw) { showStatus('settings-status', '비밀번호를 입력하세요.', 'error'); return; }
+      localStorage.setItem('adminPassword', newPw);
+      document.getElementById('new-admin-password').value = '';
+      showStatus('settings-status', '비밀번호 변경 완료', 'success');
+    }
+
+    function loadSettings() {
+      document.getElementById('script-url').value = getScriptUrl();
+      document.getElementById('setting-4rft-rooms').value = APP_SETTINGS['4rft'];
+      document.getElementById('setting-4fes-rooms').value = APP_SETTINGS['4fes'];
+      document.getElementById('setting-5rft-rooms').value = APP_SETTINGS['5rft'];
+      document.getElementById('setting-5fes-rooms').value = APP_SETTINGS['5fes'];
+      renderNameList();
+    }
+
+    async function saveAppSettings() {
+      APP_SETTINGS['4rft'] = Number(document.getElementById('setting-4rft-rooms').value) || 6;
+      APP_SETTINGS['4fes'] = Number(document.getElementById('setting-4fes-rooms').value) || 3;
+      APP_SETTINGS['5rft'] = Number(document.getElementById('setting-5rft-rooms').value) || 6;
+      APP_SETTINGS['5fes'] = Number(document.getElementById('setting-5fes-rooms').value) || 3;
+      localStorage.setItem('appSettings', JSON.stringify(APP_SETTINGS));
+      try {
+        await apiCall('saveSettings', {}, { ...APP_SETTINGS, nameList: NAME_LIST.join(',') });
+        showStatus('settings-status', '설정 저장 완료', 'success');
+      } catch (e) { showStatus('settings-status', '로컬 저장됨', 'info'); }
+    }
+
+    // ===== 이름 리스트 =====
+    function loadNameList() {
+      renderNameList();
+    }
+    async function loadNameListFromServer() {
+      // init에서 이미 처리하므로 여기서는 renderNameList만
+      renderNameList();
+    }
+    async function saveNameList() {
+      localStorage.setItem('nameList', JSON.stringify(NAME_LIST));
+      renderNameList();
+      // 서버에 전용 시트로 저장
+      try {
+        const result = await apiCall('saveNameList', {}, { names: NAME_LIST });
+        console.log('이름 서버 저장 결과:', result);
+      } catch(e) {
+        console.log('이름 서버 저장 실패:', e.message);
+        showStatus('name-list-status', '서버 저장 실패: ' + e.message, 'error');
+      }
+    }
+    function renderNameList() {
+      const container = document.getElementById('name-list');
+      if (!container) return;
+      container.innerHTML = NAME_LIST.map((name, i) =>
+        `<span class="name-tag">${name}<button class="remove-btn" onclick="removeName(${i})">✕</button></span>`
+      ).join('');
+    }
+    async function addName() {
+      const input = document.getElementById('new-name-input');
+      const name = input.value.trim();
+      if (!name) return;
+      if (NAME_LIST.includes(name)) { showStatus('name-list-status', '이미 등록됨', 'error'); return; }
+      NAME_LIST.push(name);
+      NAME_LIST.sort((a,b) => a.localeCompare(b,'ko'));
+      await saveNameList();
+      input.value = '';
+      showStatus('name-list-status', `"${name}" 추가 완료 (서버 저장됨)`, 'success');
+    }
+    async function removeName(index) {
+      const name = NAME_LIST[index];
+      NAME_LIST.splice(index, 1);
+      await saveNameList();
+      showStatus('name-list-status', `"${name}" 삭제 완료 (서버 저장됨)`, 'info');
+    }
+
+    // ===== 자동완성 =====
+    let activeAutocomplete = null;
+    let selectedIndex = -1;
+
+    function onNameInput(input) {
+      const val = input.value.trim();
+      const listId = input.id + '-list';
+      const listEl = document.getElementById(listId);
+      if (!listEl) return;
+      if (val && NAME_LIST.length > 0) {
+        input.style.borderColor = NAME_LIST.includes(val) ? '#27ae60' : '#e74c3c';
+      } else { input.style.borderColor = '#ddd'; }
+      if (!val) { listEl.classList.remove('show'); return; }
+      const matches = NAME_LIST.filter(name => name.includes(val));
+      if (matches.length === 0 || (matches.length === 1 && matches[0] === val)) { listEl.classList.remove('show'); return; }
+      listEl.innerHTML = matches.map(name =>
+        `<div class="autocomplete-item" onmousedown="selectName('${input.id}', '${name}')">${name}</div>`
+      ).join('');
+      listEl.classList.add('show');
+      activeAutocomplete = { input, listEl, matches };
+      selectedIndex = -1;
+    }
+
+    function selectName(inputId, name) {
+      const input = document.getElementById(inputId);
+      input.value = name;
+      input.style.borderColor = '#27ae60';
+      const listEl = document.getElementById(inputId + '-list');
+      if (listEl) listEl.classList.remove('show');
+      activeAutocomplete = null;
+      selectedIndex = -1;
+      // 선택 후 포커스 유지 (Enter로 이동은 handleKeyNav에서 처리)
+    }
+
+    function validateNameOnBlur(input) {
+      setTimeout(() => {
+        const val = input.value.trim();
+        if (!val) { input.style.borderColor = '#ddd'; return; }
+        if (NAME_LIST.length === 0) return;
+        if (!NAME_LIST.includes(val)) {
+          input.value = '';
+          input.style.borderColor = '#ddd';
+        }
+      }, 300);
+    }
+
+    // ===== 초기화 =====
+    async function init() {
+      const saved = localStorage.getItem('appSettings');
+      if (saved) APP_SETTINGS = JSON.parse(saved);
+      // localStorage에서 이름 먼저 로드
+      const savedNames = localStorage.getItem('nameList');
+      if (savedNames) NAME_LIST = JSON.parse(savedNames);
+      // 서버에서 이름 리스트 불러오기
+      try {
+        const result = await apiCall('getNameList');
+        if (result.names && result.names.length > 0) {
+          NAME_LIST = result.names;
+          localStorage.setItem('nameList', JSON.stringify(NAME_LIST));
+        }
+      } catch(e) { console.log('이름 리스트 로드 실패:', e.message); }
+      // 서버에서 설정 불러오기
+      try {
+        const settings = await apiCall('getSettings');
+        if (settings['4rft']) APP_SETTINGS['4rft'] = Number(settings['4rft']);
+        if (settings['4fes']) APP_SETTINGS['4fes'] = Number(settings['4fes']);
+        if (settings['5rft']) APP_SETTINGS['5rft'] = Number(settings['5rft']);
+        if (settings['5fes']) APP_SETTINGS['5fes'] = Number(settings['5fes']);
+        localStorage.setItem('appSettings', JSON.stringify(APP_SETTINGS));
+      } catch(e) { console.log('설정 로드 실패:', e.message); }
+      // 페이지 표시
+      showPage('4rft');
+    }
+    init();
+  </script>
+</body>
+</html>
