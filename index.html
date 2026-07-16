@@ -422,21 +422,42 @@
       if (countEl) countEl.textContent = `(${count}개 룸)`;
       const isRFT = type.includes('RFT');
 
+      // 룸별 컬럼 설정
+      function getRoomColumns(type, room) {
+        if (type === '4F_RFT') {
+          if (room <= 3) return ['normal', 'recovery']; // R1~R3: 일반, 회복기 (C 없음)
+          else return ['complex', 'recovery']; // R4~R6: C, 회복기 (일반 없음)
+        }
+        if (type === '5F_RFT') {
+          if (room === 1) return ['recovery', 'complex']; // R1: 회복기, C (일반 없음)
+          if (room === 2) return ['normal', 'recovery']; // R2: 일반, 회복기 (C 없음)
+          return ['normal', 'recovery', 'complex']; // 나머지: 전부
+        }
+        // FES: 일반, 회복기
+        return ['normal', 'recovery'];
+      }
+
+      function getColumnLabel(col) {
+        if (col === 'normal') return '일반';
+        if (col === 'recovery') return '회복기';
+        if (col === 'complex') return 'C';
+        return col;
+      }
+
       let html = '';
       for (let r = 1; r <= count; r++) {
+        const cols = getRoomColumns(type, r);
         html += `<div class="room-card"><h4>${prefix}${r}</h4><table>
-          <thead><tr><th>시간</th><th>이름</th><th>일반</th><th>회복기</th>${isRFT?'<th>C</th>':''}</tr></thead><tbody>`;
+          <thead><tr><th>시간</th><th>이름</th>${cols.map(c => `<th>${getColumnLabel(c)}</th>`).join('')}</tr></thead><tbody>`;
         TIME_SLOTS.forEach((time, ti) => {
           const id = `${type}-${r}-${time}`;
           html += `<tr>
             <td>${time}</td>
             <td class="autocomplete-wrapper">
-              <input type="text" id="${id}-name" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="name" placeholder="이름" oninput="onNameInput(this)" onfocus="onNameInput(this)" onblur="validateNameOnBlur(this)" onkeydown="handleKeyNav(event, this)" autocomplete="off">
+              <input type="text" id="${id}-name" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="name" data-cols="${cols.join(',')}" placeholder="이름" oninput="onNameInput(this)" onfocus="onNameInput(this)" onblur="validateNameOnBlur(this)" onkeydown="handleKeyNav(event, this)" autocomplete="off">
               <div class="autocomplete-list" id="${id}-name-list"></div>
             </td>
-            <td><input type="number" id="${id}-normal" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="normal" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>
-            <td><input type="number" id="${id}-recovery" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="recovery" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>
-            ${isRFT?`<td><input type="number" id="${id}-complex" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="complex" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>`:''}
+            ${cols.map(col => `<td><input type="number" id="${id}-${col}" data-type="${type}" data-room="${r}" data-tidx="${ti}" data-field="${col}" data-cols="${cols.join(',')}" min="0" value="" onkeydown="handleKeyNav(event, this)"></td>`).join('')}
           </tr>`;
         });
         html += '</tbody></table></div>';
@@ -517,12 +538,15 @@
           if (listEl) listEl.classList.remove('show');
           activeAutocomplete = null;
         } else if (event.key === 'ArrowRight') {
-          // 커서가 텍스트 끝에 있으면 일반 칸으로 이동
+          // 커서가 텍스트 끝에 있으면 다음 컬럼으로 이동
           if (input.selectionStart === input.value.length) {
             event.preventDefault();
-            const nextId = `${type}-${room}-${TIME_SLOTS[tidx]}-normal`;
-            const nextEl = document.getElementById(nextId);
-            if (nextEl) nextEl.focus();
+            const cols = input.dataset.cols ? input.dataset.cols.split(',') : [];
+            if (cols.length > 0) {
+              const nextId = `${type}-${room}-${TIME_SLOTS[tidx]}-${cols[0]}`;
+              const nextEl = document.getElementById(nextId);
+              if (nextEl) nextEl.focus();
+            }
           }
         }
         return;
@@ -547,8 +571,8 @@
         }
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        const isRFT = type.includes('RFT');
-        const fields = isRFT ? ['name','normal','recovery','complex'] : ['name','normal','recovery'];
+        const cols = input.dataset.cols ? input.dataset.cols.split(',') : [];
+        const fields = ['name', ...cols];
         const fi = fields.indexOf(field);
         if (fi < fields.length - 1) {
           const nextField = fields[fi + 1];
@@ -558,8 +582,8 @@
         }
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        const isRFT = type.includes('RFT');
-        const fields = isRFT ? ['name','normal','recovery','complex'] : ['name','normal','recovery'];
+        const cols = input.dataset.cols ? input.dataset.cols.split(',') : [];
+        const fields = ['name', ...cols];
         const fi = fields.indexOf(field);
         if (fi > 0) {
           const prevField = fields[fi - 1];
