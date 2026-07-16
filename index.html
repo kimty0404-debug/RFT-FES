@@ -595,10 +595,14 @@
     }
 
     // ===== 데이터 로드/저장 =====
+    const _loadedRooms = {}; // 캐시: 이미 로드한 룸 타입 기록
+
     async function loadRoomData(type) {
       renderRooms(type);
-      // 서버에서 저장된 데이터 불러오기
+      // 이미 로드한 적 있으면 서버 호출 생략
+      if (_loadedRooms[type]) return;
       await loadFromServer(type);
+      _loadedRooms[type] = true;
     }
 
     async function refreshRoomData(type) {
@@ -629,6 +633,7 @@
     async function forceResetRoomData(type) {
       // 초기화: 빈칸으로 초기화 + 서버 데이터 삭제
       renderRooms(type);
+      _loadedRooms[type] = true; // 초기화 후에도 캐시 유지 (빈 상태)
       try {
         await apiCall('saveRoom', {}, { type, entries: [] });
         showStatus(getPageKey(type) + '-status', '초기화 완료!', 'success');
