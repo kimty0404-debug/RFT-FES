@@ -596,11 +596,12 @@
 
     // ===== 데이터 로드/저장 =====
     const _loadedRooms = {}; // 캐시: 이미 로드한 룸 타입 기록
+    const _renderedRooms = {}; // 이미 렌더링한 룸 기록
 
     async function loadRoomData(type) {
-      renderRooms(type);
-      // 이미 로드한 적 있으면 서버 호출 생략
+      // 이미 렌더링+로드 완료된 탭이면 아무것도 안 함
       if (_loadedRooms[type]) return;
+      renderRooms(type);
       await loadFromServer(type);
       _loadedRooms[type] = true;
     }
