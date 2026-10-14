@@ -429,7 +429,7 @@
           else return ['complex', 'recovery']; // R4~R6: C, 회복기 (일반 없음)
         }
         if (type === '5F_RFT') {
-          if (room === 1) return ['recovery', 'complex']; // R1: 회복기, C (일반 없음)
+          if (room === 1) return ['complex', 'recovery']; // R1: C, 회복기 (일반 없음)
           if (room === 2) return ['normal', 'recovery']; // R2: 일반, 회복기 (C 없음)
           return ['normal', 'recovery', 'complex']; // 나머지: 전부
         }
@@ -553,6 +553,10 @@
       }
 
       // 숫자 칸 (일반/회복기/C): Enter/↓ → 아래 같은 칸, ↑ → 위 같은 칸, ←→ → 옆 칸
+      // 숫자 input의 ↑/↓ 기본 동작(값 증감)을 먼저 차단
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        event.preventDefault();
+      }
       if (event.key === 'Enter' || event.key === 'ArrowDown') {
         event.preventDefault();
         const nextTidx = tidx + 1;
